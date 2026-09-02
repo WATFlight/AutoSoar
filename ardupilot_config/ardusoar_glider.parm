@@ -1,0 +1,59 @@
+# ArduSoar parameter set — ~2 m electric powered glider (Radian-class)
+# Load with: MAVProxy `param load ardusoar_glider.parm`, or Mission Planner
+#   (Config > Full Parameter List > Load), then write + reboot.
+#
+# Scope: the SOARING + AIRSPEED layer only. Board/serial/motor/servo wiring and
+# the basic flight tune (roll/pitch/TECS for the airframe) are the FC team's.
+#
+# Legend:  [TUNE] measure on the real airframe   [SITE] depends on field/airspace
+#          [OK] sensible default                  [WIRE] depends on FC wiring
+
+# ---- Soaring core ---------------------------------------------------------
+SOAR_ENABLE      1
+SOAR_VSPEED      0.7      # [OK] net vario (m/s) to trigger thermalling; lower = more eager (0.5–0.8)
+
+# ---- Drag polar — the most airframe-specific thing -----------------------
+# [TUNE] These set the expected sink vs airspeed. Starting values are for a
+# Radian-class 2 m electric glider (ArduPilot soaring docs). MUST be tuned to the
+# real airframe or thermal detection/centring will be off. To tune: fly smooth
+# glides at several airspeeds with motor off, log CTUN/ARSP, fit sink(V), and set
+# CD0/B/K so the predicted polar matches (see ardupilot_config/README.md).
+SOAR_POLAR_CD0   0.027
+SOAR_POLAR_B     0.031
+SOAR_POLAR_K     25.6
+
+# ---- Altitude band (AGL, m) ----------------------------------------------
+SOAR_ALT_MIN     50       # [SITE] below this: stop thermalling, motor/RTL
+SOAR_ALT_CUTOFF  120      # [SITE] cruising below this: motor runs; above: glide
+SOAR_ALT_MAX     300      # [SITE] climb ceiling in a thermal — SET TO YOUR AIRSPACE
+                          #        LIMIT (many jurisdictions cap ~120 m AGL; soaring
+                          #        needs a higher limit/waiver to be useful)
+SOAR_MAX_DRIFT   0        # [SITE] 0 = off; else max m downwind of home before recentre
+
+# ---- Mode hysteresis (s) — avoid chatter ---------------------------------
+SOAR_MIN_THML_S  20       # [OK] min time in a thermal
+SOAR_MIN_CRSE_S  20       # [OK] min time cruising between thermals
+
+# ---- Thermal estimator (EKF) tuning --------------------------------------
+SOAR_Q1          0.001    # [OK] process noise: strength/radius
+SOAR_Q2          0.03     # [OK] process noise: position
+SOAR_R           0.2      # [OK] measurement noise (vario)
+SOAR_DIST_AHEAD  5        # [OK] thermal-search distance ahead (x radius)
+
+# ---- Airspeed sensor: Matek ASPD-4525 (MS4525DO, I2C) --------------------
+ARSPD_TYPE       1        # I2C-MS4525D0 (the ASPD-4525's sensor) — confirmed
+                          # [WIRE] also set ARSPD_BUS to the F405-Wing I2C bus it's on
+ARSPD_USE        1        # use airspeed for TECS / soaring (REQUIRED for ArduSoar)
+ARSPD_AUTOCAL    0        # [OK] calibrate on the ground, not in flight
+AIRSPEED_MIN     8        # [TUNE] just above stall + margin (m/s)
+AIRSPEED_CRUISE  12       # [TUNE] best glide / cruise speed
+AIRSPEED_MAX     22       # [TUNE] never-exceed for auto modes
+
+# ---- Speed-to-fly / TECS for soaring -------------------------------------
+TECS_SPDWEIGHT   2.0      # [OK] bias control to airspeed (soaring); 2 = hold speed
+
+# ---- Soaring enable switch (optional) ------------------------------------
+# Assign a 3-position switch to soaring on the channel the FC team wires:
+#   RC<N>_OPTION 88   (LOW = off, MIDDLE = manual mode changes, HIGH = auto)
+# The companion can also drive it over MAVLink: MAV_CMD_DO_AUX_FUNCTION(88, level).
+# Leave unset here so it doesn't clash with the FC team's RC map.  [WIRE]

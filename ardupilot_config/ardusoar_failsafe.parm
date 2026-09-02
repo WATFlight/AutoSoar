@@ -1,0 +1,43 @@
+# ArduSoar failsafe / safety parameter set — load AFTER ardusoar_glider.parm.
+#
+# Required before any autonomous soaring flight: geofence, link-loss RTL, and a
+# battery failsafe. All enum values below are verified against the ArduPlane source.
+#
+# Legend:  [TUNE] depends on battery/airframe   [SITE] depends on field/airspace
+#          [WIRE] depends on FC wiring           [DECIDE] a policy choice
+
+# ---- Geofence ----------------------------------------------------------------
+FENCE_ENABLE     1
+FENCE_TYPE       3        # bitmask: 1=max-alt + 2=circle  (add 4 for a polygon)
+FENCE_ALT_MAX    300      # [SITE] AGL ceiling — set to your airspace limit; align with SOAR_ALT_MAX
+FENCE_RADIUS     1000     # [SITE] max metres from home
+FENCE_ACTION     1        # 1 = RTL or Land   (0=report only)
+FENCE_MARGIN     20
+
+# ---- RC / link-loss failsafe -------------------------------------------------
+THR_FAILSAFE     1        # enable RC failsafe (PWM/PPM/SBUS RX with a failsafe value)
+THR_FS_VALUE     950      # throttle PWM below this = failsafe
+FS_SHORT_ACTN    0        # in AUTO/GUIDED/LOITER: no change on a brief glitch (keep the mission)
+FS_LONG_ACTN     1        # 1 = ReturnToLaunch on a sustained RC loss
+FS_LONG_TIMEOUT  5
+# NOTE (ELRS/CRSF, your RadioMaster + Matek RX): there is no PWM throttle channel,
+# so set the RECEIVER to output "no pulses" on failsafe — ArduPilot then detects RC
+# loss via the protocol and applies FS_*_ACTN. Verify by powering off the TX.
+FS_GCS_ENABL     0        # [DECIDE] OFF: losing the Pi companion link must NOT trigger
+                          # failsafe — the FC + ArduSoar fly autonomously. If you add a
+                          # dedicated SAFETY telemetry radio to a laptop, tie GCS-FS to
+                          # THAT link instead (set 1 and route it on the safety serial).
+
+# ---- Battery failsafe --------------------------------------------------------
+# Thresholds depend on the power module and LiPo cell count — RECOMPUTE for your S.
+BATT_MONITOR     4        # [WIRE] 4 = analog voltage + current (Matek F405-Wing sensing)
+BATT_LOW_VOLT    10.5     # [TUNE] ~3.5 V x cells  (example shown for 3S)
+BATT_CRT_VOLT    9.9      # [TUNE] ~3.3 V x cells  (example shown for 3S)
+BATT_LOW_TIMER   10       # seconds below LOW before acting
+BATT_FS_LOW_ACT  1        # 1 = RTL   (plane)
+BATT_FS_CRT_ACT  2        # 2 = Land  (plane)
+
+# ---- Motor emergency stop ----------------------------------------------------
+# Assign a switch the FC team wires so a human can kill the motor instantly:
+#   RC<N>_OPTION 31    (Motor Emergency Stop)   [WIRE]
+# ArduSoar already cuts the motor while gliding; this is the manual override.
