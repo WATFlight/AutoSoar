@@ -1,0 +1,38 @@
+diff --git a/libraries/SITL/SIM_Aircraft.cpp b/libraries/SITL/SIM_Aircraft.cpp
+index d1ae681..cd4dd60 100644
+--- a/libraries/SITL/SIM_Aircraft.cpp
++++ b/libraries/SITL/SIM_Aircraft.cpp
+@@ -1317,6 +1317,33 @@ float Aircraft::get_local_updraft(const Vector3d &currentPos)
+             thermals_x[0] =  0;
+             thermals_y[0] =  0;
+             break;
++        case 5: {
++            // ArduSoar weather-truth scenario: thermals at real forecast
++            // positions, loaded once from /tmp/sitl_thermals.txt (one thermal per
++            // line: "x_north_m y_east_m w_ms r_m"). Lets the planner's real-weather
++            // route be flown through thermals placed at the forecast hotspots.
++            static bool loaded = false;
++            static int file_n = 0;
++            static float fx[MAX_THERMALS], fy[MAX_THERMALS], fw[MAX_THERMALS], fr[MAX_THERMALS];
++            if (!loaded) {
++                loaded = true;
++                FILE *tf = fopen("/tmp/sitl_thermals.txt", "r");
++                if (tf != nullptr) {
++                    while (file_n < MAX_THERMALS &&
++                           fscanf(tf, "%f %f %f %f", &fx[file_n], &fy[file_n],
++                                  &fw[file_n], &fr[file_n]) == 4) {
++                        file_n++;
++                    }
++                    fclose(tf);
++                }
++            }
++            n_thermals = file_n;
++            for (int i = 0; i < n_thermals; i++) {
++                thermals_x[i] = fx[i]; thermals_y[i] = fy[i];
++                thermals_w[i] = fw[i]; thermals_r[i] = fr[i];
++            }
++            break;
++        }
+         default:
+             AP_BoardConfig::config_error("Bad thermal scenario");
+     }
